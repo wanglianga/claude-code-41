@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>骑手工作台 - 骑手装备与事故安全服务</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">🛵 骑手装备与事故安全服务 · 骑手端</div>
+  <div class="user"><span id="userInfo"></span><button onclick="logout()">退出登录</button></div>
+</div>
+<div class="tabs">
+  <button data-tab="equipment" class="active">我的装备</button>
+  <button data-tab="replacements">更换申请</button>
+  <button data-tab="accidents">事故申报</button>
+  <button data-tab="assessment">我的考核</button>
+  <button data-tab="training">我的培训</button>
+</div>
+<div class="container">
+  <div id="msg" class="msg"></div>
+
+  <div id="tab-equipment" class="tab-pane">
+    <div class="card">
+      <h3>我的装备（领用记录 / 押金 / 更换周期）</h3>
+      <div id="equipmentTable">加载中...</div>
+    </div>
+  </div>
+
+  <div id="tab-replacements" class="tab-pane" style="display:none">
+    <div class="card">
+      <h3>我的更换申请（系统根据磨损、天气、历史领用与站点库存自动评估）</h3>
+      <div id="replacementTable">加载中...</div>
+    </div>
+  </div>
+
+  <div id="tab-accidents" class="tab-pane" style="display:none">
+    <div class="card">
+      <h3>提交事故申报</h3>
+      <form id="accidentForm">
+        <div class="row">
+          <div class="field"><label>事故类型 *</label>
+            <select id="aType">
+              <option value="TRAFFIC_ACCIDENT">交通事故</option>
+              <option value="FALL">摔倒</option>
+              <option value="EQUIPMENT_DAMAGE">装备损坏</option>
+              <option value="FOOD_CONTAMINATION">餐品污染</option>
+            </select></div>
+          <div class="field"><label>事故时间 *</label><input type="datetime-local" id="aOccurredAt" required></div>
+          <div class="field"><label>天气</label>
+            <select id="aWeather">
+              <option value="SUNNY">晴天</option><option value="RAINY">雨天</option>
+              <option value="SNOWY">雪天</option><option value="WINDY">大风</option>
+              <option value="FOGGY">雾天</option><option value="EXTREME_HEAT">高温</option>
+            </select></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>事故地点 *</label><input id="aLocation" required placeholder="如：文三路与学院路交叉口"></div>
+          <div class="field"><label>所属线路/区域</label><input id="aRouteArea" placeholder="如：文三路线"></div>
+          <div class="field"><label>关联订单号</label><input id="aOrderNo" placeholder="如：ORD20260912001"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>装备状态描述</label><input id="aEquipDesc" placeholder="如：头盔外壳碎裂"></div>
+          <div class="field"><label>损坏装备</label><select id="aDamagedType"><option value="">无</option></select></div>
+          <div class="field"><label>交警记录编号</label><input id="aPoliceNo" placeholder="如有"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>伤情描述</label><input id="aInjury" placeholder="如：手臂擦伤 / 无"></div>
+          <div class="field"><label>现场照片 URL（多个用逗号分隔）</label><input id="aPhotos" placeholder="https://..."></div>
+        </div>
+        <button class="btn" type="submit">提交申报</button>
+      </form>
+    </div>
+    <div class="card">
+      <h3>我的事故记录（点击查看核查与联动处理）</h3>
+      <div id="accidentTable">加载中...</div>
+    </div>
+  </div>
+
+  <div id="tab-assessment" class="tab-pane" style="display:none">
+    <div class="card">
+      <h3>我的考核分（基准 100 分）</h3>
+      <div id="assessmentView">加载中...</div>
+    </div>
+  </div>
+
+  <div id="tab-training" class="tab-pane" style="display:none">
+    <div class="card">
+      <h3>我的培训记录</h3>
+      <div id="trainingTable">加载中...</div>
+    </div>
+  </div>
+</div>
+
+<!-- 更换申请弹窗 -->
+<div class="modal-mask" id="replaceModal">
+  <div class="modal" style="width:480px">
+    <span class="close" onclick="closeModal('replaceModal')">✕</span>
+    <h3>申请更换装备</h3>
+    <div id="replaceInfo" style="font-size:13px;color:#666;margin-bottom:12px"></div>
+    <form id="replaceForm">
+      <input type="hidden" id="rIssueId">
+      <div class="row"><div class="field"><label>当前天气</label>
+        <select id="rWeather">
+          <option value="SUNNY">晴天</option><option value="RAINY" selected>雨天</option>
+          <option value="SNOWY">雪天</option><option value="WINDY">大风</option>
+          <option value="FOGGY">雾天</option><option value="EXTREME_HEAT">高温</option>
+        </select></div></div>
+      <div class="row"><div class="field"><label>更换原因 *</label>
+        <textarea id="rReason" rows="3" required placeholder="请描述磨损/损坏情况"></textarea></div></div>
+      <div class="row"><div class="field"><label>磨损照片 URL（多个用逗号分隔）</label>
+        <input id="rPhotos" placeholder="https://..."></div></div>
+      <button class="btn" type="submit">提交申请（系统自动评估）</button>
+    </form>
+  </div>
+</div>
+
+<!-- 事故详情弹窗 -->
+<div class="modal-mask" id="accidentModal">
+  <div class="modal">
+    <span class="close" onclick="closeModal('accidentModal')">✕</span>
+    <h3>事故详情与联动处理</h3>
+    <div id="accidentDetail"></div>
+  </div>
+</div>
+
+<script src="/js/common.js"></script>
+<script src="/js/rider.js"></script>
+</body>
+</html>

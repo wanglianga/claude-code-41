@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 - 骑手装备与事故安全服务</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="login-wrap">
+  <div class="login-card">
+    <h1>骑手装备与事故安全服务</h1>
+    <div class="sub">城市外卖站点装备领用 · 更换 · 事故申报 · 复盘分析</div>
+    <div id="msg" class="msg"></div>
+    <form id="loginForm">
+      <input type="text" id="username" placeholder="用户名" autocomplete="username" required>
+      <input type="password" id="password" placeholder="密码" autocomplete="current-password" required>
+      <button type="submit">登 录</button>
+    </form>
+    <div class="demo">
+      <b>演示账号</b><br>
+      站长：manager1 / manager123（城东配送站）<br>
+      站长：manager2 / manager123（城西配送站）<br>
+      骑手：rider01 / rider123（张伟）<br>
+      管理员：admin / admin123
+    </div>
+  </div>
+</div>
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('msg');
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: document.getElementById('username').value.trim(),
+        password: document.getElementById('password').value,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '登录失败');
+    location.href = data.role === 'RIDER' ? '/rider.html' : '/manager.html';
+  } catch (err) {
+    msg.className = 'msg err';
+    msg.textContent = err.message;
+  }
+});
+</script>
+</body>
+</html>

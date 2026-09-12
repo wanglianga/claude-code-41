@@ -1,0 +1,10 @@
+target/
+*.jar
+!.mvn/wrapper/*.jar
+.git/
+.idea/
+*.iml
+.vscode/
+node_modules/
+*.log
+.env

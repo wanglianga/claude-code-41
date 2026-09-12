@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>站长工作台 - 骑手装备与事故安全服务</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">🛡️ 骑手装备与事故安全服务 · 站长端</div>
+  <div class="user">
+    <span id="stationPicker" style="display:none">站点：<select id="stationSelect" onchange="changeStation()"></select></span>
+    <span id="userInfo"></span>
+    <button onclick="logout()">退出登录</button>
+  </div>
+</div>
+<div class="tabs">
+  <button data-tab="overview" class="active">总览</button>
+  <button data-tab="stock">库存与发放</button>
+  <button data-tab="issues">领用记录</button>
+  <button data-tab="replacements">更换审核</button>
+  <button data-tab="accidents">事故核查</button>
+  <button data-tab="claims">保险理赔</button>
+  <button data-tab="reissues">装备补发</button>
+  <button data-tab="assessments">骑手考核</button>
+  <button data-tab="trainings">培训记录</button>
+  <button data-tab="analytics">数据分析</button>
+  <button data-tab="policies">规则调整</button>
+</div>
+<div class="container">
+  <div id="msg" class="msg"></div>
+
+  <div id="tab-overview" class="tab-pane">
+    <div class="stat-grid" id="statGrid"></div>
+    <div class="card"><h3>风险告警（雨季损耗 / 头盔过期 / 食品安全 / 材料缺失）</h3><div id="alertList"></div></div>
+  </div>
+
+  <div id="tab-stock" class="tab-pane" style="display:none">
+    <div class="card">
+      <h3>发放装备给骑手</h3>
+      <form id="issueForm">
+        <div class="row">
+          <div class="field"><label>骑手 *</label><select id="iRider" required></select></div>
+          <div class="field"><label>装备类型 *</label><select id="iType" required></select></div>
+          <div class="field"><label>尺码 *</label><select id="iSize" required></select></div>
+          <div class="field"><label>备注</label><input id="iNotes" placeholder="选填"></div>
+        </div>
+        <button class="btn" type="submit">确认发放（自动扣减库存并收取押金）</button>
+      </form>
+    </div>
+    <div class="card"><h3>站点库存</h3><div id="stockTable">加载中...</div></div>
+  </div>
+
+  <div id="tab-issues" class="tab-pane" style="display:none">
+    <div class="card">
+      <h3>装备领用记录 <label style="font-weight:normal;font-size:13px;margin-left:12px"><input type="checkbox" id="expiredOnly" onchange="loadIssues()"> 只看已超期</label></h3>
+      <div id="issueTable">加载中...</div>
+    </div>
+  </div>
+
+  <div id="tab-replacements" class="tab-pane" style="display:none">
+    <div class="card">
+      <h3>更换申请审核（含系统自动评估建议）</h3>
+      <div id="replacementList">加载中...</div>
+    </div>
+  </div>
+
+  <div id="tab-accidents" class="tab-pane" style="display:none">
+    <div class="card"><h3>事故申报核查</h3><div id="accidentList">加载中...</div></div>
+  </div>
+
+  <div id="tab-claims" class="tab-pane" style="display:none">
+    <div class="card"><h3>保险理赔单</h3><div id="claimTable">加载中...</div></div>
+  </div>
+
+  <div id="tab-reissues" class="tab-pane" style="display:none">
+    <div class="card"><h3>事故装备补发单</h3><div id="reissueTable">加载中...</div></div>
+  </div>
+
+  <div id="tab-assessments" class="tab-pane" style="display:none">
+    <div class="card">
+      <h3>手工考核（加分 / 扣分）</h3>
+      <form id="assessForm">
+        <div class="row">
+          <div class="field"><label>骑手 *</label><select id="asRider" required></select></div>
+          <div class="field"><label>加减分 *（正加负扣）</label><input type="number" id="asPoints" required placeholder="如 -5 或 10"></div>
+          <div class="field" style="flex:2"><label>原因 *</label><input id="asReason" required></div>
+        </div>
+        <button class="btn" type="submit">提交考核</button>
+      </form>
+    </div>
+    <div class="card"><h3>考核记录</h3><div id="assessmentTable">加载中...</div></div>
+  </div>
+
+  <div id="tab-trainings" class="tab-pane" style="display:none">
+    <div class="card">
+      <h3>登记培训</h3>
+      <form id="trainingForm">
+        <div class="row">
+          <div class="field"><label>骑手 *</label><select id="tRider" required></select></div>
+          <div class="field"><label>培训主题 *</label><input id="tTitle" required></div>
+          <div class="field"><label>类别 *</label>
+            <select id="tCategory">
+              <option value="SAFETY">安全培训</option>
+              <option value="EQUIPMENT_USE">装备使用</option>
+              <option value="FOOD_SAFETY">食品安全</option>
+            </select></div>
+          <div class="field"><label>成绩</label><input type="number" id="tScore" min="0" max="100"></div>
+        </div>
+        <button class="btn" type="submit">登记</button>
+      </form>
+    </div>
+    <div class="card"><h3>培训记录</h3><div id="trainingTable">加载中...</div></div>
+  </div>
+
+  <div id="tab-analytics" class="tab-pane" style="display:none">
+    <div class="card"><h3>事故按骑手分布</h3><div id="chartRider"></div></div>
+    <div class="card"><h3>事故按线路/区域分布（高风险区域识别）</h3><div id="chartRoute"></div></div>
+    <div class="card"><h3>事故按天气分布</h3><div id="chartWeather"></div></div>
+    <div class="card"><h3>装备消耗统计（判断是否需升级装备）</h3><div id="consumptionTable"></div></div>
+    <div class="card"><h3>事故复盘归因（装备老化 / 未佩戴 / 配送压力 / 培训缺失）</h3><div id="retrospective"></div></div>
+  </div>
+
+  <div id="tab-policies" class="tab-pane" style="display:none">
+    <div class="card">
+      <h3>新增规则调整（采购 / 培训 / 审核）</h3>
+      <form id="policyForm">
+        <div class="row">
+          <div class="field"><label>类型 *</label>
+            <select id="pType">
+              <option value="PROCUREMENT">采购规则</option>
+              <option value="TRAINING">培训规则</option>
+              <option value="REVIEW_RULE">审核规则</option>
+            </select></div>
+          <div class="field" style="flex:2"><label>标题 *</label><input id="pTitle" required></div>
+        </div>
+        <div class="row"><div class="field"><label>内容 *</label><textarea id="pContent" rows="2" required></textarea></div></div>
+        <button class="btn" type="submit">保存规则</button>
+      </form>
+    </div>
+    <div class="card"><h3>已发布的规则调整</h3><div id="policyList">加载中...</div></div>
+  </div>
+</div>
+
+<!-- 事故核查弹窗 -->
+<div class="modal-mask" id="reviewModal">
+  <div class="modal">
+    <span class="close" onclick="closeModal('reviewModal')">✕</span>
+    <h3>事故核查</h3>
+    <div id="reviewAccidentInfo" style="margin-bottom:12px"></div>
+    <form id="reviewForm">
+      <input type="hidden" id="rvAccidentId">
+      <div class="row">
+        <div class="field"><label>是否在配送中</label><select id="rvDelivering"><option value="true">是</option><option value="false">否</option></select></div>
+        <div class="field"><label>是否佩戴装备</label><select id="rvWearing"><option value="true">是</option><option value="false">否</option></select></div>
+        <div class="field"><label>是否违规骑行</label><select id="rvViolation"><option value="false">否</option><option value="true">是</option></select></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>违规说明</label><input id="rvViolationDesc" placeholder="违规时填写"></div>
+        <div class="field"><label>是否需要保险材料</label><select id="rvInsurance"><option value="false">否</option><option value="true">是</option></select></div>
+        <div class="field"><label>材料是否齐全</label><select id="rvMaterials"><option value="true">是</option><option value="false">否</option></select></div>
+      </div>
+      <div class="row"><div class="field"><label>核查备注</label><textarea id="rvNotes" rows="2"></textarea></div></div>
+      <div class="row">
+        <button class="btn" type="button" onclick="submitReview('APPROVED')">核查通过（联动保险/补发/考核）</button>
+        <button class="btn danger" type="button" onclick="submitReview('REJECTED')">驳回申报</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 事故详情弹窗 -->
+<div class="modal-mask" id="accidentModal">
+  <div class="modal">
+    <span class="close" onclick="closeModal('accidentModal')">✕</span>
+    <h3>事故事件全景（事故 + 核查 + 保险 + 补发 + 考核）</h3>
+    <div id="accidentDetail"></div>
+  </div>
+</div>
+
+<script src="/js/common.js"></script>
+<script src="/js/manager.js"></script>
+</body>
+</html>

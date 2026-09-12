@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>骑手装备与事故安全服务</title>
+</head>
+<body>
+<p style="text-align:center;margin-top:80px;color:#666">正在跳转...</p>
+<script>
+fetch('/api/auth/me', { credentials: 'same-origin' })
+  .then(r => { if (r.status === 401) { location.href = '/login.html'; return null; } return r.json(); })
+  .then(u => { if (u) location.href = u.role === 'RIDER' ? '/rider.html' : '/manager.html'; })
+  .catch(() => { location.href = '/login.html'; });
+</script>
+</body>
+</html>
