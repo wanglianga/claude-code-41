@@ -12,8 +12,9 @@
 | --- | --- |
 | 装备管理 | 6 类装备（头盔/反光衣/雨衣/保温箱/电动车支架/充电器）类型、押金、更换周期、尺码、站点库存 |
 | 装备发放 | 站长发放装备：扣减库存、记录发放时间/尺码/押金/状态，自动计算应更换日期 |
-| 更换申请 | 骑手提交磨损照片+天气+原因，规则引擎按**使用时长 vs 更换周期、雨雪天加速损耗、近 6 个月更换频率、站点库存**自动评估：免费更换 / 押金扣减 / 维修 / 驳回，站长可覆盖 |
-| 事故申报 | 骑手提交事故类型（交通事故/摔倒/装备损坏/餐品污染）、时间、地点、线路、订单号、装备状态、伤情、交警记录、照片、天气 |
+| 更换申请 | 骑手提交磨损照片（真实文件上传）+天气+原因，规则引擎按**使用时长 vs 更换周期、雨雪天加速损耗、近 6 个月更换频率、站点库存**自动评估：免费更换 / 押金扣减 / 维修 / 驳回，站长可覆盖 |
+| 事故申报 | 骑手提交事故类型（交通事故/摔倒/装备损坏/餐品污染）、时间、地点、线路、订单号、装备状态、伤情、交警记录、现场照片（文件上传）、天气 |
+| 照片附件 | 真实文件上传（JPG/PNG/GIF/WEBP，单张 ≤5MB，魔数校验防伪装），上传后回显缩略图，提交后事故/更换详情与站长核查页均可查看原图 |
 | 事故核查 | 站长核查是否配送中、是否佩戴装备、是否违规、是否需要保险材料；核查通过自动**联动生成**保险理赔单、装备补发单、考核扣分 |
 | 事件全景 | 事故 + 核查 + 保险 + 补发 + 考核在同一事件视图串联 |
 | 风险告警 | 雨季装备集中损坏、头盔过期、保温箱食品安全、保险材料缺失四类自动告警 |
@@ -72,9 +73,11 @@ docker compose up -d --build
 | --- | --- | --- |
 | POST | `/api/auth/login` | 登录（JSON: username/password，会话 Cookie） |
 | GET | `/api/auth/me` | 当前用户 |
+| POST | `/api/attachments` | 上传照片（multipart 字段名 `file`，JPG/PNG/GIF/WEBP ≤5MB，返回附件 ID 与 URL） |
+| GET | `/api/attachments/{id}` | 读取照片内容（登录用户可访问，用于回显与复核） |
 | GET | `/api/rider/equipment` | 我的装备 |
-| POST | `/api/rider/replacements` | 提交更换申请（自动评估） |
-| POST | `/api/rider/accidents` | 提交事故申报 |
+| POST | `/api/rider/replacements` | 提交更换申请（自动评估，body 可带 `photoIds: [附件ID]`） |
+| POST | `/api/rider/accidents` | 提交事故申报（body 可带 `photoIds: [附件ID]`） |
 | GET | `/api/manager/stock` / POST `/api/manager/issue` | 站点库存 / 发放装备 |
 | POST | `/api/manager/replacements/{id}/process` | 更换审核（APPROVE_FREE/APPROVE_DEPOSIT/REPAIR/REJECT） |
 | POST | `/api/manager/accidents/{id}/review` | 事故核查（联动保险/补发/考核） |

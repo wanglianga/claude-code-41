@@ -58,3 +58,38 @@ function barChart(rows, nameKey, valKey) {
       <div class="val">${r[valKey]}</div>
     </div>`).join('');
 }
+
+/** 渲染附件照片缩略图（点击新窗口查看原图） */
+function photoThumbs(photos) {
+  if (!photos || !photos.length) return '';
+  return '<div class="photo-preview">' + photos.map(p =>
+    `<a href="${p.url}" target="_blank" title="${esc(p.name)}"><img class="photo-thumb" src="${p.url}" alt="${esc(p.name)}"></a>`
+  ).join('') + '</div>';
+}
+
+/**
+ * 上传文件选择框中的全部图片，成功后把缩略图回显到 previewEl。
+ * 返回附件 ID 数组；任一文件被校验拒绝时抛错（调用方负责提示）。
+ */
+async function uploadPhotos(inputEl, previewEl) {
+  const ids = [];
+  if (previewEl) previewEl.innerHTML = '';
+  for (const f of inputEl.files) {
+    const fd = new FormData();
+    fd.append('file', f);
+    const res = await fetch('/api/attachments', { method: 'POST', body: fd, credentials: 'same-origin' });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) { location.href = '/login.html'; throw new Error('未登录'); }
+    if (!res.ok) throw new Error(`${f.name}: ${data.error || ('上传失败 ' + res.status)}`);
+    ids.push(data.id);
+    if (previewEl) {
+      const a = document.createElement('a');
+      a.href = data.url; a.target = '_blank';
+      const img = document.createElement('img');
+      img.src = data.url; img.className = 'photo-thumb'; img.title = f.name;
+      a.appendChild(img);
+      previewEl.appendChild(a);
+    }
+  }
+  return ids;
+}

@@ -40,7 +40,8 @@ public class AccidentController {
                 Payload.str(body, "injuryDesc"),
                 Payload.str(body, "policeRecordNo"),
                 Payload.str(body, "photoUrls"),
-                w != null ? Weather.valueOf(w) : null);
+                w != null ? Weather.valueOf(w) : null,
+                Payload.idList(body, "photoIds"));
     }
 
     @GetMapping("/rider/accidents")

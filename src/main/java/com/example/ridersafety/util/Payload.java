@@ -3,6 +3,8 @@ package com.example.ridersafety.util;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /** 请求体（Map）取值辅助 */
@@ -60,5 +62,27 @@ public class Payload {
         s = s.replace(' ', 'T');
         if (s.length() == 16) s = s + ":00";
         return LocalDateTime.parse(s, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+    }
+
+    /** 解析 ID 列表，支持 JSON 数组 [1,2] 或逗号分隔字符串 "1,2" */
+    @SuppressWarnings("unchecked")
+    public static List<Long> idList(Map<String, Object> m, String key) {
+        Object v = m.get(key);
+        if (v == null) return List.of();
+        if (v instanceof List<?> list) {
+            List<Long> ids = new ArrayList<>();
+            for (Object o : list) {
+                if (o != null) ids.add(Long.parseLong(o.toString()));
+            }
+            return ids;
+        }
+        String s = v.toString().trim();
+        if (s.isEmpty()) return List.of();
+        List<Long> ids = new ArrayList<>();
+        for (String t : s.split(",")) {
+            t = t.trim();
+            if (!t.isEmpty()) ids.add(Long.parseLong(t));
+        }
+        return ids;
     }
 }

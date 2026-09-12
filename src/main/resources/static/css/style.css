@@ -79,3 +79,7 @@ form input:focus, form select:focus, form textarea:focus { outline: none; border
 .eval { background: #f6f9fc; border-left: 3px solid #3a86c8; padding: 8px 10px; font-size: 12px; color: #555; border-radius: 3px; margin-top: 6px; white-space: pre-wrap; }
 .section-title { font-size: 14px; font-weight: 600; color: #0d3b66; margin: 14px 0 8px; }
 .factor-tag { display: inline-block; background: #fff4e5; color: #d9822b; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin: 2px 4px 2px 0; }
+.photo-preview { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; }
+.photo-thumb { height: 56px; width: auto; border-radius: 4px; border: 1px solid #e5e6eb; cursor: zoom-in; object-fit: cover; }
+.photo-thumb:hover { border-color: #0d3b66; }
+.upload-hint { font-size: 12px; color: #999; margin-top: 4px; }

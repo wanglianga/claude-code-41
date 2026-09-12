@@ -1,5 +1,7 @@
 let currentUser = null;
 let equipmentTypes = [];
+let accidentPhotoIds = [];
+let replacePhotoIds = [];
 
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
 
@@ -36,6 +38,9 @@ async function loadEquipment() {
 function openReplace(issueId, typeName, size) {
   document.getElementById('rIssueId').value = issueId;
   document.getElementById('replaceInfo').textContent = `装备：${typeName}（${size}）`;
+  replacePhotoIds = [];
+  document.getElementById('rPhotos').value = '';
+  document.getElementById('rPhotoPreview').innerHTML = '';
   document.getElementById('replaceModal').classList.add('show');
 }
 
@@ -50,6 +55,7 @@ async function loadReplacements() {
         <div>${badge('replacementStatus', r.status)}</div>
       </div>
       <div style="font-size:13px;color:#666;margin-top:4px">原因：${esc(r.reason)}</div>
+      ${photoThumbs(r.photos)}
       ${r.evaluation ? `<div class="eval">系统评估：${esc(r.evaluation)}</div>` : ''}
       ${r.depositDeducted > 0 ? `<div style="font-size:12px;color:#d4380d;margin-top:4px">押金扣减：${r.depositDeducted} 元</div>` : ''}
       ${r.processNote ? `<div style="font-size:12px;color:#888;margin-top:4px">处理备注：${esc(r.processNote)}（${esc(r.processedBy || '')} ${fmtDT(r.processedAt)}）</div>` : ''}
@@ -84,6 +90,9 @@ async function showAccident(id) {
     <tr><th>交警记录</th><td>${esc(a.policeRecordNo || '-')}</td></tr>
     <tr><th>状态</th><td>${badge('accidentStatus', a.status)}</td></tr>
   </table>`;
+  if (a.photos && a.photos.length) {
+    html += `<div class="section-title">现场照片（${a.photos.length} 张）</div>` + photoThumbs(a.photos);
+  }
   if (a.review) {
     html += `<div class="section-title">站长核查结论</div><table>
       <tr><th style="width:110px">配送中</th><td>${boolText(a.review.wasDelivering)}</td></tr>
@@ -138,6 +147,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     equipmentTypes.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('');
   document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 
+  // 事故照片：选择后立即上传并回显
+  document.getElementById('aPhotos').addEventListener('change', async (e) => {
+    const msg = document.getElementById('msg');
+    try {
+      accidentPhotoIds = await uploadPhotos(e.target, document.getElementById('aPhotoPreview'));
+      if (accidentPhotoIds.length) showMsg(msg, `已上传 ${accidentPhotoIds.length} 张照片`, true);
+    } catch (err) {
+      accidentPhotoIds = [];
+      e.target.value = '';
+      document.getElementById('aPhotoPreview').innerHTML = '';
+      showMsg(msg, err.message, false);
+    }
+  });
+
+  // 磨损照片：选择后立即上传并回显
+  document.getElementById('rPhotos').addEventListener('change', async (e) => {
+    const msg = document.getElementById('msg');
+    try {
+      replacePhotoIds = await uploadPhotos(e.target, document.getElementById('rPhotoPreview'));
+      if (replacePhotoIds.length) showMsg(msg, `已上传 ${replacePhotoIds.length} 张照片`, true);
+    } catch (err) {
+      replacePhotoIds = [];
+      e.target.value = '';
+      document.getElementById('rPhotoPreview').innerHTML = '';
+      showMsg(msg, err.message, false);
+    }
+  });
+
   document.getElementById('replaceForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const msg = document.getElementById('msg');
@@ -148,12 +185,13 @@ document.addEventListener('DOMContentLoaded', async () => {
           issueId: Number(document.getElementById('rIssueId').value),
           reason: document.getElementById('rReason').value,
           weather: document.getElementById('rWeather').value,
-          wearPhotos: document.getElementById('rPhotos').value || null,
+          photoIds: replacePhotoIds,
         },
       });
       closeModal('replaceModal');
       showMsg(msg, '更换申请已提交，系统已完成自动评估，请查看「更换申请」页', true);
       document.getElementById('rReason').value = '';
+      replacePhotoIds = [];
       loadReplacements();
     } catch (err) { showMsg(msg, err.message, false); }
   });
@@ -174,12 +212,14 @@ document.addEventListener('DOMContentLoaded', async () => {
           damagedEquipmentTypeId: document.getElementById('aDamagedType').value || null,
           injuryDesc: document.getElementById('aInjury').value || null,
           policeRecordNo: document.getElementById('aPoliceNo').value || null,
-          photoUrls: document.getElementById('aPhotos').value || null,
+          photoIds: accidentPhotoIds,
           weather: document.getElementById('aWeather').value,
         },
       });
       showMsg(msg, '事故申报已提交，等待站长核查', true);
       e.target.reset();
+      accidentPhotoIds = [];
+      document.getElementById('aPhotoPreview').innerHTML = '';
       loadAccidents();
     } catch (err) { showMsg(msg, err.message, false); }
   });

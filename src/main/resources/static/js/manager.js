@@ -116,7 +116,8 @@ async function loadReplacements() {
           · 发放于 ${fmtDT(r.issuedAt)} · 应更换 ${fmtD(r.expectedReplaceAt)} · 天气 ${L('weather', r.weather)}</div>
         <div>${badge('replacementStatus', r.status)}</div>
       </div>
-      <div style="font-size:13px;color:#666;margin-top:4px">原因：${esc(r.reason)}${r.wearPhotos ? ` · 照片：${esc(r.wearPhotos)}` : ''}</div>
+      <div style="font-size:13px;color:#666;margin-top:4px">原因：${esc(r.reason)}${r.wearPhotos ? ` · 历史照片链接：${esc(r.wearPhotos)}` : ''}</div>
+      ${photoThumbs(r.photos)}
       ${r.evaluation ? `<div class="eval">系统评估：${esc(r.evaluation)}</div>` : ''}
       ${r.status === 'PENDING' ? `
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -173,7 +174,8 @@ async function openReview(id) {
     <tr><th>装备状态</th><td>${esc(a.equipmentStatusDesc || '-')}${a.damagedEquipmentTypeName ? ' · 损坏：' + esc(a.damagedEquipmentTypeName) : ''}</td></tr>
     <tr><th>伤情</th><td>${esc(a.injuryDesc || '-')}</td></tr>
     <tr><th>交警记录</th><td>${esc(a.policeRecordNo || '无')}</td></tr>
-  </table>`;
+    <tr><th>现场照片</th><td>${a.photos && a.photos.length ? '' : '未提交'}</td></tr>
+  </table>${photoThumbs(a.photos)}`;
   document.getElementById('reviewModal').classList.add('show');
 }
 
@@ -210,6 +212,9 @@ async function showAccident(id) {
     <tr><th>装备状态</th><td>${esc(a.equipmentStatusDesc || '-')}</td></tr>
     <tr><th>伤情/交警记录</th><td>${esc(a.injuryDesc || '-')} / ${esc(a.policeRecordNo || '无')}</td></tr>
   </table>`;
+  if (a.photos && a.photos.length) {
+    html += `<div class="section-title">现场照片（${a.photos.length} 张）</div>` + photoThumbs(a.photos);
+  }
   if (a.review) {
     html += `<div class="section-title">核查结论（${esc(a.review.reviewerName)} · ${fmtDT(a.review.reviewedAt)}）</div><table>
       <tr><th style="width:110px">配送中</th><td>${boolText(a.review.wasDelivering)}</td></tr>

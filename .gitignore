@@ -12,6 +12,12 @@ node_modules/
 dist/
 build/
 target/
+out/
+*.class
+*.jar
+*.war
+*.ear
+.gradle/
 coverage/
 .cache/
 .mvn/
@@ -30,6 +36,8 @@ skills/
 **/skills/
 .claude/
 **/.claude/
+CLAUDE.md
+**/CLAUDE.md
 *_traces/
 **/*_traces/
 qa/

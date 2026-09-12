@@ -30,9 +30,13 @@ public class ReplacementRequest {
     @Column(length = 1000)
     private String reason;
 
-    /** 磨损照片（URL，逗号分隔） */
+    /** 磨损照片（URL，逗号分隔，历史遗留字段） */
     @Column(length = 1000)
     private String wearPhotos;
+
+    /** 磨损照片附件 ID（逗号分隔，对应 attachments 表） */
+    @Column(length = 500)
+    private String photoIds;
 
     /** 申请时天气 */
     @Enumerated(EnumType.STRING)

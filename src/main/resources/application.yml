@@ -18,6 +18,12 @@ spring:
   servlet:
     session:
       timeout: 8h
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+
+app:
+  upload-dir: ${UPLOAD_DIR:uploads}
 
 logging:
   level:

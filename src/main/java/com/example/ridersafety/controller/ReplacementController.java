@@ -36,7 +36,8 @@ public class ReplacementController {
                 Payload.lng(body, "issueId"),
                 Payload.require(body, "reason", "更换原因"),
                 weather,
-                Payload.str(body, "wearPhotos"));
+                Payload.str(body, "wearPhotos"),
+                Payload.idList(body, "photoIds"));
     }
 
     @GetMapping("/rider/replacements")

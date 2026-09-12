@@ -55,9 +55,13 @@ public class AccidentReport {
     /** 交警记录编号 */
     private String policeRecordNo;
 
-    /** 现场照片（URL，逗号分隔） */
+    /** 现场照片（URL，逗号分隔，历史遗留字段） */
     @Column(length = 1000)
     private String photoUrls;
+
+    /** 现场照片附件 ID（逗号分隔，对应 attachments 表） */
+    @Column(length = 500)
+    private String photoIds;
 
     @Enumerated(EnumType.STRING)
     private Weather weather;

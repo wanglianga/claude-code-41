@@ -24,12 +24,14 @@ public class ReplacementService {
     private final EquipmentIssueRepository issueRepo;
     private final EquipmentStockRepository stockRepo;
     private final RiderAssessmentRepository assessmentRepo;
+    private final AttachmentService attachmentService;
 
     private static final Set<String> RAIN_SENSITIVE = Set.of("RAINCOAT", "HELMET", "VEST");
 
     /** 骑手提交更换申请，系统自动评估（磨损照片、天气、历史领用、站点库存） */
     @Transactional
-    public Map<String, Object> create(User rider, Long issueId, String reason, Weather weather, String wearPhotos) {
+    public Map<String, Object> create(User rider, Long issueId, String reason, Weather weather,
+                                      String wearPhotos, List<Long> photoIds) {
         EquipmentIssue issue = issueRepo.findById(issueId)
                 .orElseThrow(() -> ApiException.notFound("领用记录不存在"));
         if (!issue.getRider().getId().equals(rider.getId())) {
@@ -49,8 +51,16 @@ public class ReplacementService {
         req.setReason(reason);
         req.setWeather(weather);
         req.setWearPhotos(wearPhotos);
+        req.setPhotoIds(AttachmentService.joinIds(photoIds));
         evaluate(req);
-        return DtoMapper.replacement(requestRepo.save(req));
+        ReplacementRequest saved = requestRepo.save(req);
+        return withPhotos(saved);
+    }
+
+    private Map<String, Object> withPhotos(ReplacementRequest r) {
+        Map<String, Object> m = DtoMapper.replacement(r);
+        m.put("photos", attachmentService.photosOf(r.getPhotoIds()));
+        return m;
     }
 
     /**
@@ -126,14 +136,14 @@ public class ReplacementService {
     @Transactional(readOnly = true)
     public List<Map<String, Object>> myRequests(User rider) {
         return requestRepo.findByRider_IdOrderByCreatedAtDesc(rider.getId()).stream()
-                .map(DtoMapper::replacement).toList();
+                .map(this::withPhotos).toList();
     }
 
     @Transactional(readOnly = true)
     public List<Map<String, Object>> requestsForStation(Long stationId, String status) {
         return requestRepo.findByRider_Station_IdOrderByCreatedAtDesc(stationId).stream()
                 .filter(r -> status == null || r.getStatus().name().equals(status))
-                .map(DtoMapper::replacement).toList();
+                .map(this::withPhotos).toList();
     }
 
     /** 站长处理更换申请：免费更换 / 押金扣减更换 / 维修 / 驳回 */
@@ -173,7 +183,7 @@ public class ReplacementService {
         req.setProcessedBy(manager);
         req.setProcessedAt(LocalDateTime.now());
         req.setProcessNote(note);
-        return DtoMapper.replacement(requestRepo.save(req));
+        return withPhotos(requestRepo.save(req));
     }
 
     /** 执行更换：旧装备标记已更换，扣库存，生成新领用记录 */

@@ -89,6 +89,7 @@ public class DtoMapper {
         m.put("expectedReplaceAt", i.getExpectedReplaceAt());
         m.put("reason", r.getReason());
         m.put("wearPhotos", r.getWearPhotos());
+        m.put("photoIds", r.getPhotoIds());
         m.put("weather", r.getWeather() != null ? r.getWeather().name() : null);
         m.put("status", r.getStatus().name());
         m.put("evaluation", r.getEvaluation());
@@ -118,6 +119,7 @@ public class DtoMapper {
         m.put("injuryDesc", a.getInjuryDesc());
         m.put("policeRecordNo", a.getPoliceRecordNo());
         m.put("photoUrls", a.getPhotoUrls());
+        m.put("photoIds", a.getPhotoIds());
         m.put("weather", a.getWeather() != null ? a.getWeather().name() : null);
         m.put("status", a.getStatus().name());
         m.put("createdAt", a.getCreatedAt());

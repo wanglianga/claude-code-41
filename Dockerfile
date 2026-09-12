@@ -15,7 +15,7 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
-RUN chown -R app:app /app
+RUN mkdir -p /app/uploads && chown -R app:app /app
 USER app
 
 EXPOSE 8080

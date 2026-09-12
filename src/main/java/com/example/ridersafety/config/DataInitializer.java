@@ -92,13 +92,13 @@ public class DataInitializer implements CommandLineRunner {
 
         // ---- 更换申请（走真实规则引擎） ----
         // 待处理：雨季雨衣磨损
-        replacementService.create(r1, r1Raincoat.getId(), "雨衣多处开线渗水，雨季无法继续使用", Weather.RAINY, "https://img.example.com/wear1.jpg");
-        replacementService.create(r4, r4Raincoat.getId(), "雨季磨损严重，袖口破损", Weather.RAINY, "https://img.example.com/wear2.jpg");
+        replacementService.create(r1, r1Raincoat.getId(), "雨衣多处开线渗水，雨季无法继续使用", Weather.RAINY, "https://img.example.com/wear1.jpg", null);
+        replacementService.create(r4, r4Raincoat.getId(), "雨季磨损严重，袖口破损", Weather.RAINY, "https://img.example.com/wear2.jpg", null);
         // 已处理：支架到期免费更换
-        var req2 = replacementService.create(r2, r2Mount.getId(), "支架松动无法固定手机", Weather.SUNNY, null);
+        var req2 = replacementService.create(r2, r2Mount.getId(), "支架松动无法固定手机", Weather.SUNNY, null, null);
         replacementService.process(m1, ((Number) req2.get("id")).longValue(), "APPROVE_FREE", null, "已到更换周期，免费更换");
         // 已处理：充电器未妥善保管，扣押金更换（站长覆盖系统建议）
-        var req3 = replacementService.create(r3, r3Charger.getId(), "充电器进水无法充电", Weather.SUNNY, null);
+        var req3 = replacementService.create(r3, r3Charger.getId(), "充电器进水无法充电", Weather.SUNNY, null, null);
         replacementService.process(m2, ((Number) req3.get("id")).longValue(), "APPROVE_DEPOSIT", new BigDecimal("24"), "人为进水，扣减 30% 押金");
 
         // ---- 事故申报与核查（走真实联动逻辑） ----
