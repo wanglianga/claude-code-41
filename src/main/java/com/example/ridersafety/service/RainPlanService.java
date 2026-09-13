@@ -32,12 +32,20 @@ public class RainPlanService {
     private final EquipmentTypeRepository typeRepo;
     private final EquipmentStockRepository stockRepo;
     private final EquipmentIssueRepository issueRepo;
+    private final ReplacementRequestRepository requestRepo;
+    private final AccidentReportRepository accidentRepo;
 
     // ---------- 计划生成 ----------
 
-    /** 生成雨季雨衣补货与更换计划（DRAFT） */
+    /**
+     * 生成雨季雨衣补货与更换计划（DRAFT）。
+     * 需求 = 待更换人数 + ceil(预期损耗 + 排班缓冲)，其中：
+     *   天气强度系数 = 降雨天数 / 15（基准雨季）
+     *   预期损耗 = 近90天可追溯损耗(已批准雨衣更换申请+雨衣损坏事故) × (30/90) × 天气强度系数
+     *   排班缓冲 = 该尺码骑手数 × 每骑手每周雨天班次 × 天气强度系数 × 0.2
+     */
     @Transactional
-    public Map<String, Object> generate(User manager, Integer rainyDays, String forecast) {
+    public Map<String, Object> generate(User manager, Integer rainyDays, String forecast, Integer shiftsPerWeek) {
         Station station = manager.getStation();
         if (station == null) {
             throw ApiException.badRequest("当前账号未绑定站点");
@@ -49,6 +57,8 @@ public class RainPlanService {
         EquipmentType raincoat = typeRepo.findByCode(RAINCOAT_CODE)
                 .orElseThrow(() -> ApiException.notFound("雨衣装备类型不存在"));
         int days = rainyDays != null && rainyDays > 0 ? rainyDays : 15;
+        int shifts = shiftsPerWeek != null && shiftsPerWeek > 0 ? shiftsPerWeek : 3;
+        double weatherFactor = Math.round(days / 15.0 * 100.0) / 100.0;
         String forecastText = (forecast != null && !forecast.isBlank()) ? forecast
                 : "气象台预报：未来 30 天预计降雨 " + days + " 天，请提前做好雨季装备保障";
 
@@ -62,6 +72,8 @@ public class RainPlanService {
         plan.setTitle(station.getName() + " " + LocalDate.now().getYear() + " 年雨季雨衣集中更换计划");
         plan.setSeason(LocalDate.now().getYear() + "-雨季");
         plan.setRainyDays(days);
+        plan.setWeatherFactor(weatherFactor);
+        plan.setShiftsPerWeek(shifts);
         plan.setWeatherForecast(forecastText);
         plan.setStatus(RainPlanStatus.DRAFT);
         plan.setTotalRiders(riders.size());
@@ -71,12 +83,14 @@ public class RainPlanService {
         // 逐骑手生成更换明细：尺码取自最近雨衣领用，无有效雨衣者列入待领取
         LocalDate today = LocalDate.now();
         List<RainPlanItem> items = new ArrayList<>();
+        Map<Long, String> riderSize = new HashMap<>();
         int needReplace = 0;
         for (User rider : riders) {
             List<EquipmentIssue> raincoats = issueRepo.findByRider_IdOrderByIssuedAtDesc(rider.getId()).stream()
                     .filter(i -> RAINCOAT_CODE.equals(i.getEquipmentType().getCode()))
                     .toList();
             String size = raincoats.stream().map(EquipmentIssue::getSize).findFirst().orElse(DEFAULT_SIZE);
+            riderSize.put(rider.getId(), size);
             EquipmentIssue inUse = raincoats.stream()
                     .filter(i -> i.getStatus() == IssueStatus.IN_USE).findFirst().orElse(null);
             boolean valid = inUse != null && inUse.getExpectedReplaceAt() != null
@@ -99,22 +113,40 @@ public class RainPlanService {
         plan.setNeedReplace(needReplace);
         planRepo.save(plan);
 
-        // 按尺码计算补货：需求 = 待更换 + 排班缓冲(骑手数×20%) + 历史损耗补充(近90天发放×30%)
+        // 近 90 天可追溯损耗：已批准的雨衣更换申请 + 雨衣损坏事故（按尺码归集，记录来源）
         LocalDateTime since90 = LocalDateTime.now().minusDays(90);
-        List<EquipmentIssue> stationIssues = issueRepo.findByStation_IdOrderByIssuedAtDesc(station.getId());
+        Map<String, Integer> lossBySize = new HashMap<>();
+        Map<String, List<String>> sourceBySize = new HashMap<>();
+        requestRepo.findByRider_Station_IdOrderByCreatedAtDesc(station.getId()).stream()
+                .filter(r -> RAINCOAT_CODE.equals(r.getIssue().getEquipmentType().getCode()))
+                .filter(r -> r.getStatus() == ReplacementStatus.APPROVED_FREE
+                        || r.getStatus() == ReplacementStatus.APPROVED_DEPOSIT)
+                .filter(r -> r.getCreatedAt().isAfter(since90))
+                .forEach(r -> {
+                    String size = r.getIssue().getSize();
+                    lossBySize.merge(size, 1, Integer::sum);
+                    sourceBySize.computeIfAbsent(size, k -> new ArrayList<>()).add("更换#" + r.getId());
+                });
+        accidentRepo.findByRider_Station_IdOrderByOccurredAtDesc(station.getId()).stream()
+                .filter(a -> a.getDamagedEquipmentType() != null
+                        && RAINCOAT_CODE.equals(a.getDamagedEquipmentType().getCode()))
+                .filter(a -> a.getOccurredAt().isAfter(since90))
+                .forEach(a -> {
+                    String size = riderSize.getOrDefault(a.getRider().getId(), DEFAULT_SIZE);
+                    lossBySize.merge(size, 1, Integer::sum);
+                    sourceBySize.computeIfAbsent(size, k -> new ArrayList<>()).add("事故#" + a.getId());
+                });
+
+        // 按尺码计算补货：需求 = 待更换 + ceil(预期损耗 + 排班缓冲)，天气强度全程参与
         for (String size : raincoat.getSizes().split(",")) {
             String sz = size.trim();
             long riderCount = items.stream().filter(i -> i.getSize().equals(sz)).count();
             long need = items.stream().filter(i -> i.getSize().equals(sz)
                     && i.getStatus() == RainPlanItemStatus.PENDING).count();
-            long historyLoss = stationIssues.stream()
-                    .filter(i -> RAINCOAT_CODE.equals(i.getEquipmentType().getCode()))
-                    .filter(i -> i.getSize().equals(sz))
-                    .filter(i -> i.getIssuedAt().isAfter(since90))
-                    .count();
-            int shiftBuffer = (int) Math.ceil(riderCount * 0.2);
-            int historyExtra = (int) Math.ceil(historyLoss * 0.3);
-            int demand = (int) need + shiftBuffer + historyExtra;
+            int lossBase = lossBySize.getOrDefault(sz, 0);
+            double expectedLoss = round1(lossBase * (30.0 / 90.0) * weatherFactor);
+            double shiftBuffer = round1(riderCount * shifts * weatherFactor * 0.2);
+            int demand = (int) need + (int) Math.ceil(expectedLoss + shiftBuffer);
             int stock = stockRepo.findByStation_IdAndEquipmentType_IdAndSize(
                     station.getId(), raincoat.getId(), sz).map(EquipmentStock::getQuantity).orElse(0);
 
@@ -123,7 +155,9 @@ public class RainPlanService {
             r.setSize(sz);
             r.setRiderCount((int) riderCount);
             r.setNeedReplace((int) need);
-            r.setHistoryLoss((int) historyLoss);
+            r.setLossBase(lossBase);
+            r.setLossSources(sourceBySize.containsKey(sz) ? String.join("、", sourceBySize.get(sz)) : "无");
+            r.setExpectedLoss(expectedLoss);
             r.setShiftBuffer(shiftBuffer);
             r.setDemand(demand);
             r.setStockBefore(stock);
@@ -132,6 +166,10 @@ public class RainPlanService {
             restockRepo.save(r);
         }
         return detail(plan.getId());
+    }
+
+    private static double round1(double v) {
+        return Math.round(v * 10.0) / 10.0;
     }
 
     // ---------- 查询 ----------

@@ -403,19 +403,23 @@ async function showRainPlan(id) {
   el.innerHTML = `
     <table>
       <tr><th style="width:110px">计划</th><td>${esc(p.title)} · ${badge('rainPlanStatus', p.status)}</td></tr>
-      <tr><th>天气预警</th><td>${esc(p.weatherForecast || '-')}（降雨 ${p.rainyDays ?? '-'} 天）</td></tr>
+      <tr><th>天气预警</th><td>${esc(p.weatherForecast || '-')}（降雨 ${p.rainyDays ?? '-'} 天，天气强度系数 ×${p.weatherFactor ?? '-'}）</td></tr>
+      <tr><th>雨季排班</th><td>每骑手每周 ${p.shiftsPerWeek ?? '-'} 个雨天班次</td></tr>
       <tr><th>骑手/待更换</th><td>${p.totalRiders} 人 / ${p.needReplace} 人</td></tr>
     </table>
     <div style="margin:10px 0;display:flex;gap:8px;flex-wrap:wrap">${actions.join('')}</div>
-    <div class="section-title">补货计划（按尺码，结合骑手尺码与雨季排班）</div>
+    <div class="section-title">补货计划（需求 = 待更换 + ⌈预期损耗 + 排班缓冲⌉，天气强度全程参与）</div>
     <table><thead><tr>
-      <th>尺码</th><th>骑手数</th><th>待更换</th><th>历史损耗(90天)</th><th>排班缓冲</th><th>需求合计</th><th>当前库存</th><th>补货量</th><th>库存已同步</th>
+      <th>尺码</th><th>骑手数</th><th>待更换</th><th>近90天损耗(来源)</th><th>预期损耗</th><th>排班缓冲</th><th>需求合计</th><th>当前库存</th><th>补货量</th><th>库存已同步</th>
     </tr></thead><tbody>${p.restocks.map(r => `<tr>
-      <td>${esc(r.size)}</td><td>${r.riderCount}</td><td>${r.needReplace}</td><td>${r.historyLoss}</td>
-      <td>${r.shiftBuffer}</td><td><b>${r.demand}</b></td><td>${r.stockBefore}</td>
+      <td>${esc(r.size)}</td><td>${r.riderCount}</td><td>${r.needReplace}</td>
+      <td>${r.lossBase} <span style="color:#999;font-size:12px">(${esc(r.lossSources || '无')})</span></td>
+      <td>${r.expectedLoss}</td><td>${r.shiftBuffer}</td>
+      <td><b>${r.demand}</b></td><td>${r.stockBefore}</td>
       <td style="color:${r.restockQty > 0 ? '#d4380d' : '#1a9e54'};font-weight:600">${r.restockQty > 0 ? '+' + r.restockQty : 0}</td>
       <td>${r.applied ? '<span class="badge green">已写入</span>' : '<span class="badge gray">待确认</span>'}</td>
     </tr>`).join('')}</tbody></table>
+    <div style="font-size:12px;color:#999;margin-top:4px">因子来源：预期损耗 = 近90天已批准雨衣更换+雨衣损坏事故 × (30/90) × 天气强度；排班缓冲 = 骑手数 × 每周雨天班次 × 天气强度 × 0.2</div>
     <div class="section-title">骑手领取明细</div>
     <table><thead><tr>
       <th>骑手</th><th>尺码</th><th>原有雨衣</th><th>状态</th><th>提醒时间</th><th>领取时间</th><th>操作</th>
@@ -561,6 +565,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         method: 'POST',
         body: {
           rainyDays: Number(document.getElementById('rpRainyDays').value) || null,
+          shiftsPerWeek: Number(document.getElementById('rpShifts').value) || null,
           forecast: document.getElementById('rpForecast').value || null,
         },
       });

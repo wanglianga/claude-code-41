@@ -216,6 +216,8 @@ public class DtoMapper {
         m.put("title", p.getTitle());
         m.put("season", p.getSeason());
         m.put("rainyDays", p.getRainyDays());
+        m.put("weatherFactor", p.getWeatherFactor());
+        m.put("shiftsPerWeek", p.getShiftsPerWeek());
         m.put("weatherForecast", p.getWeatherForecast());
         m.put("status", p.getStatus().name());
         m.put("totalRiders", p.getTotalRiders());
@@ -249,7 +251,9 @@ public class DtoMapper {
         m.put("size", r.getSize());
         m.put("riderCount", r.getRiderCount());
         m.put("needReplace", r.getNeedReplace());
-        m.put("historyLoss", r.getHistoryLoss());
+        m.put("lossBase", r.getLossBase());
+        m.put("lossSources", r.getLossSources());
+        m.put("expectedLoss", r.getExpectedLoss());
         m.put("shiftBuffer", r.getShiftBuffer());
         m.put("demand", r.getDemand());
         m.put("stockBefore", r.getStockBefore());

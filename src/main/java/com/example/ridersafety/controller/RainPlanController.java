@@ -27,7 +27,8 @@ public class RainPlanController {
         User manager = currentUser.require(auth);
         Integer rainyDays = body != null ? Payload.integer(body, "rainyDays") : null;
         String forecast = body != null ? Payload.str(body, "forecast") : null;
-        return rainPlanService.generate(manager, rainyDays, forecast);
+        Integer shiftsPerWeek = body != null ? Payload.integer(body, "shiftsPerWeek") : null;
+        return rainPlanService.generate(manager, rainyDays, forecast, shiftsPerWeek);
     }
 
     @GetMapping("/manager/rain-plans")

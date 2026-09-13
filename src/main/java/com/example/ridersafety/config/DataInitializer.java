@@ -30,6 +30,7 @@ public class DataInitializer implements CommandLineRunner {
     private final PolicyAdjustmentRepository policyRepo;
     private final EquipmentReissueRepository reissueRepo;
     private final InsuranceClaimRepository claimRepo;
+    private final ReplacementRequestRepository requestRepo;
     private final ReplacementService replacementService;
     private final AccidentService accidentService;
     private final PasswordEncoder passwordEncoder;
@@ -75,7 +76,12 @@ public class DataInitializer implements CommandLineRunner {
 
         issue(r2, s1, helmet, "M", 5);
         issue(r2, s1, vest, "M", 2);
-        issue(r2, s1, raincoat, "L", 1);
+        // 李强雨衣：8 个月前发放的旧雨衣已于 2 个月前批准更换（可追溯损耗记录），当前雨衣 2 个月前发放
+        EquipmentIssue r2OldRaincoat = issue(r2, s1, raincoat, "L", 8);
+        r2OldRaincoat.setStatus(IssueStatus.REPLACED);
+        r2OldRaincoat.setReturnedAt(LocalDateTime.now().minusMonths(2));
+        issueRepo.save(r2OldRaincoat);
+        issue(r2, s1, raincoat, "L", 2);
         issue(r2, s1, box, "标准", 6);
         EquipmentIssue r2Mount = issue(r2, s1, mount, "通用", 13);     // 已过期
 
@@ -101,6 +107,21 @@ public class DataInitializer implements CommandLineRunner {
         // 已处理：充电器未妥善保管，扣押金更换（站长覆盖系统建议）
         var req3 = replacementService.create(r3, r3Charger.getId(), "充电器进水无法充电", Weather.SUNNY, null, null);
         replacementService.process(m2, ((Number) req3.get("id")).longValue(), "APPROVE_DEPOSIT", new BigDecimal("24"), "人为进水，扣减 30% 押金");
+
+        // 历史已批准雨衣更换（2 个月前，作为雨季计划的可追溯损耗来源）
+        ReplacementRequest historicalRain = new ReplacementRequest();
+        historicalRain.setRider(r2);
+        historicalRain.setIssue(r2OldRaincoat);
+        historicalRain.setReason("雨衣磨损渗水");
+        historicalRain.setWeather(Weather.RAINY);
+        historicalRain.setStatus(ReplacementStatus.APPROVED_FREE);
+        historicalRain.setEvaluation("历史记录：已达更换周期，免费更换");
+        historicalRain.setSuggestedDecision(ReplacementStatus.APPROVED_FREE);
+        historicalRain.setDepositDeducted(BigDecimal.ZERO);
+        historicalRain.setProcessedBy(m1);
+        historicalRain.setProcessedAt(LocalDateTime.now().minusMonths(2));
+        historicalRain.setCreatedAt(LocalDateTime.now().minusMonths(2));
+        requestRepo.save(historicalRain);
 
         // ---- 事故申报与核查（走真实联动逻辑） ----
         // 1. 张伟 交通事故（雨天、头盔碎裂）→ 核查通过 → 保险 + 补发头盔

@@ -31,6 +31,12 @@ public class RainPlan {
     /** 天气预报：未来 30 天预计降雨天数 */
     private Integer rainyDays;
 
+    /** 天气强度系数 = rainyDays / 15（基准雨季），参与需求计算 */
+    private Double weatherFactor;
+
+    /** 雨季排班：每骑手每周雨天班次（参与排班缓冲计算） */
+    private Integer shiftsPerWeek;
+
     @Column(length = 500)
     private String weatherForecast;
 

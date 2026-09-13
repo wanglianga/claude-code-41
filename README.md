@@ -21,7 +21,7 @@
 | 数据分析 | 事故按骑手/线路/天气分布，装备消耗统计（判断是否需升级装备） |
 | 复盘归因 | 自动判断事故是否与装备老化、未佩戴、配送压力（90 天多起事故）、培训缺失（12 个月无安全培训）相关，并给出采购/考核/培训调整建议 |
 | 规则调整 | 站点发布采购、培训、审核规则调整记录 |
-| 雨季集中更换 | 雨季前按**骑手数量、历史损耗、尺码库存、天气预报（降雨天数）**生成雨衣补货与更换计划（需求=待更换+排班缓冲+历史损耗补充）；站长确认后补货写入库存，逐人/一键领取时同步押金与领用记录；未领取骑手可一键发送安全提醒，并在骑手端产生**雨天接单提示**；事故详情可追溯事故发生时雨衣/头盔防护配置 |
+| 雨季集中更换 | 雨季前按**骑手数量、可追溯损耗（近90天已批准雨衣更换申请+雨衣损坏事故，列明来源）、雨季排班（每骑手每周雨天班次）、天气强度（降雨天数/15）**生成雨衣补货与更换计划：需求=待更换+⌈预期损耗+排班缓冲⌉，其中预期损耗=损耗基数×(30/90)×天气强度、排班缓冲=骑手数×每周班次×天气强度×0.2；站长确认后补货写入库存，逐人/一键领取时同步押金与领用记录；未领取骑手可一键发送安全提醒，并在骑手端产生**雨天接单提示**；事故详情可追溯事故发生时雨衣/头盔防护配置 |
 
 ## 快速开始（Docker 一键部署）
 
@@ -87,7 +87,7 @@ docker compose up -d --build
 | GET | `/api/manager/claims` / PUT `/api/manager/claims/{id}` | 理赔单管理 |
 | POST | `/api/manager/reissues/{id}/process` | 补发单发放/取消 |
 | GET | `/api/analytics/dashboard` `/alerts` `/retrospective` `/accidents/by-rider` `/accidents/by-route` `/accidents/by-weather` `/equipment/consumption` | 统计分析 |
-| POST | `/api/manager/rain-plans/generate` | 生成雨季雨衣补货/更换计划（body 可带 rainyDays/forecast） |
+| POST | `/api/manager/rain-plans/generate` | 生成雨季雨衣补货/更换计划（body 可带 rainyDays/shiftsPerWeek/forecast） |
 | GET | `/api/manager/rain-plans` `/api/manager/rain-plans/{id}` | 计划列表 / 详情（补货计算 + 领取明细） |
 | POST | `/api/manager/rain-plans/{id}/confirm` `/cancel` | 确认（补货写入库存）/ 取消 |
 | POST | `/api/manager/rain-plans/{id}/issue/{itemId}` `/issue-all` | 逐人/一键发放（扣库存、记押金、换新领用） |
