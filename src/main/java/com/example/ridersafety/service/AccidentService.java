@@ -52,23 +52,27 @@ public class AccidentService {
         a.setPhotoIds(AttachmentService.joinIds(photoIds));
         a.setWeather(weather);
         a.setStatus(AccidentStatus.PENDING);
-        AccidentReport saved = accidentRepo.save(a);
-        Map<String, Object> m = DtoMapper.accident(saved);
-        m.put("photos", attachmentService.photosOf(saved.getPhotoIds()));
+        return withPhotos(accidentRepo.save(a));
+    }
+
+    /** 事故 DTO + 附件照片记录（列表与详情共用，保证 photos 一致） */
+    private Map<String, Object> withPhotos(AccidentReport a) {
+        Map<String, Object> m = DtoMapper.accident(a);
+        m.put("photos", attachmentService.photosOf(a.getPhotoIds()));
         return m;
     }
 
     @Transactional(readOnly = true)
     public List<Map<String, Object>> myAccidents(User rider) {
         return accidentRepo.findByRider_IdOrderByOccurredAtDesc(rider.getId()).stream()
-                .map(DtoMapper::accident).toList();
+                .map(this::withPhotos).toList();
     }
 
     @Transactional(readOnly = true)
     public List<Map<String, Object>> accidentsForStation(Long stationId, String status) {
         return accidentRepo.findByRider_Station_IdOrderByOccurredAtDesc(stationId).stream()
                 .filter(a -> status == null || a.getStatus().name().equals(status))
-                .map(DtoMapper::accident).toList();
+                .map(this::withPhotos).toList();
     }
 
     /** 事故详情：事故 + 核查 + 保险 + 补发 + 关联考核，串在同一事件视图 */
@@ -76,8 +80,7 @@ public class AccidentService {
     public Map<String, Object> detail(Long accidentId) {
         AccidentReport a = accidentRepo.findById(accidentId)
                 .orElseThrow(() -> ApiException.notFound("事故不存在"));
-        Map<String, Object> m = new LinkedHashMap<>(DtoMapper.accident(a));
-        m.put("photos", attachmentService.photosOf(a.getPhotoIds()));
+        Map<String, Object> m = new LinkedHashMap<>(withPhotos(a));
         reviewRepo.findByAccident_Id(accidentId).ifPresent(r -> m.put("review", DtoMapper.review(r)));
         m.put("claims", claimRepo.findByAccident_Id(accidentId).stream().map(DtoMapper::claim).toList());
         m.put("reissues", reissueRepo.findByAccident_Id(accidentId).stream().map(DtoMapper::reissue).toList());

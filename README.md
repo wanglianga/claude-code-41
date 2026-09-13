@@ -80,6 +80,7 @@ docker compose up -d --build
 | POST | `/api/rider/accidents` | 提交事故申报（body 可带 `photoIds: [附件ID]`） |
 | GET | `/api/manager/stock` / POST `/api/manager/issue` | 站点库存 / 发放装备 |
 | POST | `/api/manager/replacements/{id}/process` | 更换审核（APPROVE_FREE/APPROVE_DEPOSIT/REPAIR/REJECT） |
+| GET | `/api/manager/accidents` | 事故列表（每项含 `photos` 附件记录，站长在列表即可复核缩略图） |
 | POST | `/api/manager/accidents/{id}/review` | 事故核查（联动保险/补发/考核） |
 | GET | `/api/manager/claims` / PUT `/api/manager/claims/{id}` | 理赔单管理 |
 | POST | `/api/manager/reissues/{id}/process` | 补发单发放/取消 |

@@ -153,10 +153,11 @@ async function loadAccidents() {
   const el = document.getElementById('accidentList');
   if (!list.length) { el.innerHTML = '<p style="color:#999">暂无事故申报</p>'; return; }
   el.innerHTML = `<table><thead><tr>
-    <th>时间</th><th>骑手</th><th>类型</th><th>地点</th><th>线路</th><th>天气</th><th>状态</th><th>操作</th>
+    <th>时间</th><th>骑手</th><th>类型</th><th>地点</th><th>线路</th><th>天气</th><th>照片</th><th>状态</th><th>操作</th>
     </tr></thead><tbody>${list.map(a => `<tr>
       <td>${fmtDT(a.occurredAt)}</td><td>${esc(a.riderName)}</td><td>${L('accidentType', a.type)}</td>
       <td>${esc(a.location)}</td><td>${esc(a.routeArea || '-')}</td><td>${L('weather', a.weather)}</td>
+      <td>${a.photos && a.photos.length ? photoThumbs(a.photos) : '<span style="color:#bbb">无</span>'}</td>
       <td>${badge('accidentStatus', a.status)}</td>
       <td>
         <button class="btn small ghost" onclick="showAccident(${a.id})">详情</button>
