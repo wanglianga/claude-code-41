@@ -8,6 +8,10 @@ const Labels = {
   reissueStatus: { PENDING: '待补发', ISSUED: '已补发', CANCELLED: '已取消' },
   policyType: { PROCUREMENT: '采购规则', TRAINING: '培训规则', REVIEW_RULE: '审核规则' },
   trainingCategory: { SAFETY: '安全培训', EQUIPMENT_USE: '装备使用', FOOD_SAFETY: '食品安全' },
+  rainPlanStatus: { DRAFT: '待确认', CONFIRMED: '已确认', COMPLETED: '已完成', CANCELLED: '已取消' },
+  rainPlanItemStatus: { PENDING: '待领取', ISSUED: '已领取', SKIPPED: '无需更换' },
+  reminderType: { RAINCOAT_PICKUP: '雨衣领取提醒', RAINY_ORDER_WARNING: '雨天接单提醒', GENERAL: '通用提醒' },
+  protectionStatus: { VALID: '有效', EXPIRED: '已过期', NONE: '未配备' },
 };
 
 const StatusColor = {
@@ -15,6 +19,8 @@ const StatusColor = {
   APPROVED_FREE: 'green', APPROVED_DEPOSIT: 'orange', REPAIR: 'blue',
   IN_USE: 'green', RETURNED: 'gray', REPLACED: 'blue', SCRAPPED: 'gray',
   DRAFT: 'orange', SUBMITTED: 'blue', PAID: 'green', ISSUED: 'green', CANCELLED: 'gray',
+  CONFIRMED: 'blue', COMPLETED: 'green', SKIPPED: 'gray',
+  VALID: 'green', EXPIRED: 'red', NONE: 'gray',
 };
 
 function L(map, key) { return (Labels[map] && Labels[map][key]) || key || '-'; }

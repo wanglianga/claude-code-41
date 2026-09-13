@@ -18,6 +18,43 @@ function loadTab(name) {
   else if (name === 'accidents') loadAccidents();
   else if (name === 'assessment') loadAssessment();
   else if (name === 'training') loadTrainings();
+  else if (name === 'reminders') loadReminders();
+}
+
+/** 雨天接单提示横幅：未领取雨季雨衣 / 雨衣失效 / 有未读提醒时展示 */
+async function loadRainReadiness() {
+  const banner = document.getElementById('rainBanner');
+  try {
+    const r = await api('/api/rider/rain-readiness');
+    const warn = !r.hasValidRaincoat || r.pendingPickup || r.unreadReminders > 0;
+    if (!warn) { banner.style.display = 'none'; return; }
+    banner.style.display = '';
+    banner.innerHTML = `
+      <div class="alert-item ${r.pendingPickup || !r.hasValidRaincoat ? 'HIGH' : 'MEDIUM'}">
+        <div class="t">${esc(r.orderPrompt)}</div>
+        ${r.weatherAlert ? `<div>🌧️ 天气预警：${esc(r.weatherAlert)}</div>` : ''}
+        ${r.unreadReminders > 0 ? `<div class="s">您有 ${r.unreadReminders} 条未读安全提醒，请查看「安全提醒」页</div>` : ''}
+      </div>`;
+  } catch (e) { banner.style.display = 'none'; }
+}
+
+async function loadReminders() {
+  const list = await api('/api/rider/reminders');
+  const el = document.getElementById('reminderList');
+  if (!list.length) { el.innerHTML = '<p style="color:#999">暂无安全提醒</p>'; return; }
+  el.innerHTML = list.map(r => `
+    <div class="alert-item ${r.read ? 'MEDIUM' : 'HIGH'}" style="${r.read ? 'opacity:.65' : ''}">
+      <div class="t">${r.read ? '' : '🔴 '}[${L('reminderType', r.type)}] ${esc(r.title)}
+        <span style="float:right;font-weight:normal;font-size:12px">${fmtDT(r.createdAt)}</span></div>
+      <div>${esc(r.content)}</div>
+      ${r.read ? '' : `<div class="s"><button class="btn small" onclick="markReminderRead(${r.id})">知道了，标记已读</button></div>`}
+    </div>`).join('');
+}
+
+async function markReminderRead(id) {
+  await api('/api/rider/reminders/' + id + '/read', { method: 'POST' });
+  loadReminders();
+  loadRainReadiness();
 }
 
 async function loadEquipment() {
@@ -227,4 +264,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   loadEquipment();
+  loadRainReadiness();
 });

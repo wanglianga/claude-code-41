@@ -207,4 +207,67 @@ public class DtoMapper {
         m.put("createdAt", p.getCreatedAt());
         return m;
     }
+
+    public static Map<String, Object> rainPlan(RainPlan p) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", p.getId());
+        m.put("stationId", p.getStation().getId());
+        m.put("stationName", p.getStation().getName());
+        m.put("title", p.getTitle());
+        m.put("season", p.getSeason());
+        m.put("rainyDays", p.getRainyDays());
+        m.put("weatherForecast", p.getWeatherForecast());
+        m.put("status", p.getStatus().name());
+        m.put("totalRiders", p.getTotalRiders());
+        m.put("needReplace", p.getNeedReplace());
+        m.put("createdBy", p.getCreatedBy());
+        m.put("confirmedBy", p.getConfirmedBy());
+        m.put("createdAt", p.getCreatedAt());
+        m.put("confirmedAt", p.getConfirmedAt());
+        return m;
+    }
+
+    public static Map<String, Object> rainPlanItem(RainPlanItem i) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", i.getId());
+        m.put("planId", i.getPlan().getId());
+        m.put("riderId", i.getRider().getId());
+        m.put("riderName", i.getRider().getName());
+        m.put("size", i.getSize());
+        m.put("hadValidRaincoat", i.getHadValidRaincoat());
+        m.put("oldIssueId", i.getOldIssueId());
+        m.put("newIssueId", i.getNewIssueId());
+        m.put("status", i.getStatus().name());
+        m.put("remindedAt", i.getRemindedAt());
+        m.put("issuedAt", i.getIssuedAt());
+        return m;
+    }
+
+    public static Map<String, Object> rainPlanRestock(RainPlanRestock r) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", r.getId());
+        m.put("size", r.getSize());
+        m.put("riderCount", r.getRiderCount());
+        m.put("needReplace", r.getNeedReplace());
+        m.put("historyLoss", r.getHistoryLoss());
+        m.put("shiftBuffer", r.getShiftBuffer());
+        m.put("demand", r.getDemand());
+        m.put("stockBefore", r.getStockBefore());
+        m.put("restockQty", r.getRestockQty());
+        m.put("applied", r.getApplied());
+        return m;
+    }
+
+    public static Map<String, Object> reminder(SafetyReminder r) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", r.getId());
+        m.put("riderId", r.getRider().getId());
+        m.put("planId", r.getPlan() != null ? r.getPlan().getId() : null);
+        m.put("type", r.getType().name());
+        m.put("title", r.getTitle());
+        m.put("content", r.getContent());
+        m.put("read", r.getReadFlag());
+        m.put("createdAt", r.getCreatedAt());
+        return m;
+    }
 }

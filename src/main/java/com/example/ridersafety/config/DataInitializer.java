@@ -61,9 +61,10 @@ public class DataInitializer implements CommandLineRunner {
         EquipmentType mount = type("BIKE_MOUNT", "电动车支架", "40", 12, "通用", "手机/导航支架");
         EquipmentType charger = type("CHARGER", "充电器", "80", 12, "48V,60V", "电动车原装充电器");
 
-        // ---- 站点库存 ----
-        seedStock(s1, new EquipmentType[]{helmet, vest, raincoat, box, mount, charger});
-        seedStock(s2, new EquipmentType[]{helmet, vest, raincoat, box, mount, charger});
+        // ---- 站点库存（雨衣库存刻意压低，用于雨季补货计划演示） ----
+        EquipmentType[] types = {helmet, vest, raincoat, box, mount, charger};
+        seedStock(s1, types, new int[][]{{5, 8, 6}, {6, 8, 8, 4}, {10, 1, 2}, {6, 4}, {8}, {6, 6}});
+        seedStock(s2, types, new int[][]{{4, 6, 5}, {5, 6, 6, 3}, {8, 2, 1}, {5, 3}, {6}, {5, 5}});
 
         // ---- 历史领用（月数前：部分已超期，用于复盘与告警演示） ----
         EquipmentIssue r1Helmet = issue(r1, s1, helmet, "L", 14);      // 已过期
@@ -171,8 +172,7 @@ public class DataInitializer implements CommandLineRunner {
         return typeRepo.save(new EquipmentType(code, name, new BigDecimal(deposit), cycle, sizes, desc));
     }
 
-    private void seedStock(Station s, EquipmentType[] types) {
-        int[][] qty = {{5, 8, 6}, {6, 8, 8, 4}, {10, 10, 6}, {6, 4}, {8}, {6, 6}};
+    private void seedStock(Station s, EquipmentType[] types, int[][] qty) {
         for (int i = 0; i < types.length; i++) {
             String[] sizes = types[i].getSizes().split(",");
             for (int j = 0; j < sizes.length; j++) {

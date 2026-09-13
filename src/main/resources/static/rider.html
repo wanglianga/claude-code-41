@@ -17,8 +17,10 @@
   <button data-tab="accidents">事故申报</button>
   <button data-tab="assessment">我的考核</button>
   <button data-tab="training">我的培训</button>
+  <button data-tab="reminders">安全提醒</button>
 </div>
 <div class="container">
+  <div id="rainBanner" style="display:none"></div>
   <div id="msg" class="msg"></div>
 
   <div id="tab-equipment" class="tab-pane">
@@ -92,6 +94,13 @@
     <div class="card">
       <h3>我的培训记录</h3>
       <div id="trainingTable">加载中...</div>
+    </div>
+  </div>
+
+  <div id="tab-reminders" class="tab-pane" style="display:none">
+    <div class="card">
+      <h3>安全提醒（雨季装备领取等）</h3>
+      <div id="reminderList">加载中...</div>
     </div>
   </div>
 </div>

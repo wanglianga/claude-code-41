@@ -18,7 +18,7 @@ function loadTab(name) {
     overview: loadOverview, stock: loadStockTab, issues: loadIssues,
     replacements: loadReplacements, accidents: loadAccidents, claims: loadClaims,
     reissues: loadReissues, assessments: loadAssessments, trainings: loadTrainings,
-    analytics: loadAnalytics, policies: loadPolicies,
+    analytics: loadAnalytics, policies: loadPolicies, rainplans: loadRainPlans,
   };
   if (loaders[name]) loaders[name]();
 }
@@ -216,6 +216,13 @@ async function showAccident(id) {
   if (a.photos && a.photos.length) {
     html += `<div class="section-title">现场照片（${a.photos.length} 张）</div>` + photoThumbs(a.photos);
   }
+  if (a.protection) {
+    const prot = (label, p) => `<tr><th style="width:110px">${label}</th><td>${badge('protectionStatus', p.status)}${p.size ? ` · 尺码 ${esc(p.size)} · 发放 ${fmtDT(p.issuedAt)} · 应更换 ${fmtD(p.expectedReplaceAt)}` : ''}</td></tr>`;
+    html += `<div class="section-title">事故发生时防护配置追溯</div><table>
+      ${prot('雨衣', a.protection.raincoat)}
+      ${prot('头盔', a.protection.helmet)}
+    </table>`;
+  }
   if (a.review) {
     html += `<div class="section-title">核查结论（${esc(a.review.reviewerName)} · ${fmtDT(a.review.reviewedAt)}）</div><table>
       <tr><th style="width:110px">配送中</th><td>${boolText(a.review.wasDelivering)}</td></tr>
@@ -361,6 +368,93 @@ async function loadAnalytics() {
       </tr>`).join('')}</tbody></table>` : ''}`;
 }
 
+// ---------- 雨季计划 ----------
+let currentPlanId = null;
+
+async function loadRainPlans() {
+  const list = await api('/api/manager/rain-plans' + qs());
+  const el = document.getElementById('rainPlanList');
+  if (!list.length) { el.innerHTML = '<p style="color:#999">暂无雨季计划，请先生成</p>'; return; }
+  el.innerHTML = `<table><thead><tr>
+    <th>计划</th><th>雨季</th><th>降雨天数</th><th>骑手数</th><th>待更换</th><th>状态</th><th>创建</th><th>操作</th>
+    </tr></thead><tbody>${list.map(p => `<tr>
+      <td>${esc(p.title)}</td><td>${esc(p.season || '-')}</td><td>${p.rainyDays ?? '-'}</td>
+      <td>${p.totalRiders ?? '-'}</td><td>${p.needReplace ?? '-'}</td>
+      <td>${badge('rainPlanStatus', p.status)}</td>
+      <td>${esc(p.createdBy || '')} ${fmtDT(p.createdAt)}</td>
+      <td><button class="btn small ghost" onclick="showRainPlan(${p.id})">查看</button></td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+async function showRainPlan(id) {
+  currentPlanId = id;
+  const p = await api('/api/manager/rain-plans/' + id);
+  document.getElementById('rainPlanDetailCard').style.display = '';
+  const el = document.getElementById('rainPlanDetail');
+  const actions = [];
+  if (p.status === 'DRAFT') {
+    actions.push(`<button class="btn" onclick="rainPlanAction(${p.id},'confirm')">确认计划（补货写入库存）</button>`);
+    actions.push(`<button class="btn danger" onclick="rainPlanAction(${p.id},'cancel')">取消计划</button>`);
+  }
+  if (p.status === 'CONFIRMED') {
+    actions.push(`<button class="btn" onclick="rainPlanAction(${p.id},'issue-all')">一键发放全部待领取</button>`);
+    actions.push(`<button class="btn ghost" onclick="rainPlanAction(${p.id},'remind')">向未领取骑手发送安全提醒</button>`);
+  }
+  el.innerHTML = `
+    <table>
+      <tr><th style="width:110px">计划</th><td>${esc(p.title)} · ${badge('rainPlanStatus', p.status)}</td></tr>
+      <tr><th>天气预警</th><td>${esc(p.weatherForecast || '-')}（降雨 ${p.rainyDays ?? '-'} 天）</td></tr>
+      <tr><th>骑手/待更换</th><td>${p.totalRiders} 人 / ${p.needReplace} 人</td></tr>
+    </table>
+    <div style="margin:10px 0;display:flex;gap:8px;flex-wrap:wrap">${actions.join('')}</div>
+    <div class="section-title">补货计划（按尺码，结合骑手尺码与雨季排班）</div>
+    <table><thead><tr>
+      <th>尺码</th><th>骑手数</th><th>待更换</th><th>历史损耗(90天)</th><th>排班缓冲</th><th>需求合计</th><th>当前库存</th><th>补货量</th><th>库存已同步</th>
+    </tr></thead><tbody>${p.restocks.map(r => `<tr>
+      <td>${esc(r.size)}</td><td>${r.riderCount}</td><td>${r.needReplace}</td><td>${r.historyLoss}</td>
+      <td>${r.shiftBuffer}</td><td><b>${r.demand}</b></td><td>${r.stockBefore}</td>
+      <td style="color:${r.restockQty > 0 ? '#d4380d' : '#1a9e54'};font-weight:600">${r.restockQty > 0 ? '+' + r.restockQty : 0}</td>
+      <td>${r.applied ? '<span class="badge green">已写入</span>' : '<span class="badge gray">待确认</span>'}</td>
+    </tr>`).join('')}</tbody></table>
+    <div class="section-title">骑手领取明细</div>
+    <table><thead><tr>
+      <th>骑手</th><th>尺码</th><th>原有雨衣</th><th>状态</th><th>提醒时间</th><th>领取时间</th><th>操作</th>
+    </tr></thead><tbody>${p.items.map(i => `<tr>
+      <td>${esc(i.riderName)}</td><td>${esc(i.size)}</td>
+      <td>${i.hadValidRaincoat ? '<span class="badge green">有效</span>' : '<span class="badge red">缺失/过期</span>'}</td>
+      <td>${badge('rainPlanItemStatus', i.status)}</td>
+      <td>${fmtDT(i.remindedAt)}</td><td>${fmtDT(i.issuedAt)}</td>
+      <td>${i.status === 'PENDING' && p.status === 'CONFIRMED' ? `<button class="btn small" onclick="rainPlanIssue(${p.id},${i.id})">发放</button>` : ''}</td>
+    </tr>`).join('')}</tbody></table>`;
+  el.scrollIntoView({ behavior: 'smooth' });
+}
+
+async function rainPlanAction(id, action) {
+  const msg = document.getElementById('msg');
+  try {
+    const result = await api(`/api/manager/rain-plans/${id}/${action}`, { method: 'POST', body: {} });
+    if (action === 'confirm') showMsg(msg, '计划已确认，补货量已写入库存', true);
+    else if (action === 'cancel') showMsg(msg, '计划已取消', true);
+    else if (action === 'issue-all') {
+      const fails = result.failures && result.failures.length ? '，库存不足未发放：' + result.failures.join('；') : '';
+      showMsg(msg, `已发放 ${result.issuedCount} 人${fails}`, !fails);
+    }
+    else if (action === 'remind') showMsg(msg, `已向 ${result.remindedCount} 名未领取骑手发送安全提醒`, true);
+    await showRainPlan(id);
+    loadRainPlans();
+  } catch (err) { showMsg(msg, err.message, false); }
+}
+
+async function rainPlanIssue(planId, itemId) {
+  const msg = document.getElementById('msg');
+  try {
+    await api(`/api/manager/rain-plans/${planId}/issue/${itemId}`, { method: 'POST', body: {} });
+    showMsg(msg, '已发放：库存已扣减，押金与领用记录已同步', true);
+    await showRainPlan(planId);
+    loadRainPlans();
+  } catch (err) { showMsg(msg, err.message, false); }
+}
+
 // ---------- 规则调整 ----------
 async function loadPolicies() {
   const list = await api('/api/manager/policies' + qs());
@@ -457,6 +551,23 @@ document.addEventListener('DOMContentLoaded', async () => {
       showMsg(msg, '培训已登记', true);
       e.target.reset();
       loadTrainings();
+    } catch (err) { showMsg(msg, err.message, false); }
+  });
+
+  document.getElementById('rainPlanForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const plan = await api('/api/manager/rain-plans/generate', {
+        method: 'POST',
+        body: {
+          rainyDays: Number(document.getElementById('rpRainyDays').value) || null,
+          forecast: document.getElementById('rpForecast').value || null,
+        },
+      });
+      showMsg(msg, '雨季计划已生成（待确认）', true);
+      document.getElementById('rpForecast').value = '';
+      await loadRainPlans();
+      await showRainPlan(plan.id);
     } catch (err) { showMsg(msg, err.message, false); }
   });
 

@@ -21,6 +21,7 @@
 | 数据分析 | 事故按骑手/线路/天气分布，装备消耗统计（判断是否需升级装备） |
 | 复盘归因 | 自动判断事故是否与装备老化、未佩戴、配送压力（90 天多起事故）、培训缺失（12 个月无安全培训）相关，并给出采购/考核/培训调整建议 |
 | 规则调整 | 站点发布采购、培训、审核规则调整记录 |
+| 雨季集中更换 | 雨季前按**骑手数量、历史损耗、尺码库存、天气预报（降雨天数）**生成雨衣补货与更换计划（需求=待更换+排班缓冲+历史损耗补充）；站长确认后补货写入库存，逐人/一键领取时同步押金与领用记录；未领取骑手可一键发送安全提醒，并在骑手端产生**雨天接单提示**；事故详情可追溯事故发生时雨衣/头盔防护配置 |
 
 ## 快速开始（Docker 一键部署）
 
@@ -58,6 +59,7 @@ docker compose up -d --build
 1. **骑手 rider01 登录** →「我的装备」看到超期头盔/雨衣 → 对雨衣「申请更换」（选雨天）→「更换申请」查看系统自动评估结论。
 2. **站长 manager1 登录** →「总览」查看风险告警（雨季集中损坏、头盔过期、材料缺失）→「更换审核」按系统建议选择免费更换/扣押金/维修 →「事故核查」对待核查事故做核查（勾选需要保险、装备损坏）→ 自动在「保险理赔」「装备补发」「骑手考核」看到联动记录。
 3. **站长端「数据分析」** → 查看按骑手/线路/天气的事故分布、装备消耗与「事故复盘归因」（装备老化/未佩戴/配送压力/培训缺失）→ 在「规则调整」发布采购或培训规则。
+4. **站长端「雨季计划」** → 生成雨季雨衣计划（查看按尺码的补货计算）→ 确认计划（补货写入库存）→ 向未领取骑手发送安全提醒 → 一键发放（库存/押金/领用同步）。**骑手 rider01 登录** → 顶部出现雨天接单提示横幅，「安全提醒」页可查看并标记已读。
 
 ## 验证方式
 
@@ -85,6 +87,13 @@ docker compose up -d --build
 | GET | `/api/manager/claims` / PUT `/api/manager/claims/{id}` | 理赔单管理 |
 | POST | `/api/manager/reissues/{id}/process` | 补发单发放/取消 |
 | GET | `/api/analytics/dashboard` `/alerts` `/retrospective` `/accidents/by-rider` `/accidents/by-route` `/accidents/by-weather` `/equipment/consumption` | 统计分析 |
+| POST | `/api/manager/rain-plans/generate` | 生成雨季雨衣补货/更换计划（body 可带 rainyDays/forecast） |
+| GET | `/api/manager/rain-plans` `/api/manager/rain-plans/{id}` | 计划列表 / 详情（补货计算 + 领取明细） |
+| POST | `/api/manager/rain-plans/{id}/confirm` `/cancel` | 确认（补货写入库存）/ 取消 |
+| POST | `/api/manager/rain-plans/{id}/issue/{itemId}` `/issue-all` | 逐人/一键发放（扣库存、记押金、换新领用） |
+| POST | `/api/manager/rain-plans/{id}/remind` | 向未领取骑手发送安全提醒 |
+| GET | `/api/rider/reminders` / POST `/api/rider/reminders/{id}/read` | 我的安全提醒 / 标记已读 |
+| GET | `/api/rider/rain-readiness` | 雨天接单提示（未领取/雨衣失效时警示） |
 | GET/POST/DELETE | `/api/manager/policies` | 采购/培训/审核规则调整 |
 
 ## 技术栈与结构
